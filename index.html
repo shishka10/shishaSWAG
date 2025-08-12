@@ -29,21 +29,21 @@
 </head>
 <body>
     <h1>Web3 App with Telegram Auth</h1>
-    
+
     <div id="auth-container">
         <div id="telegram-auth"></div>
     </div>
-    
+
     <div id="user-info" style="display: none;">
         <h2>Welcome, <span id="user-name"></span>!</h2>
         <p>Telegram ID: <span id="user-id"></span></p>
-        
+
         <div id="wallet-info" style="display: none;">
             <h3>Wallet Connected</h3>
             <p>Address: <span id="wallet-address"></span></p>
             <button id="disconnect-wallet">Disconnect Wallet</button>
         </div>
-        
+
         <button id="connect-wallet">Connect Wallet</button>
     </div>
 
@@ -53,30 +53,30 @@
         let userData = null;
         let web3 = null;
         let walletAddress = '';
-        
+
         // Инициализация Telegram Widget
         function initTelegramAuth() {
             const script = document.createElement('script');
             script.src = "https://telegram.org/js/telegram-widget.js?22";
             script.async = true;
-            script.setAttribute('data-telegram-login', 'YOUR_BOT_USERNAME');
+            script.setAttribute('data-telegram-login', 'jojossaslol_bot');
             script.setAttribute('data-size', 'large');
             script.setAttribute('data-onauth', 'onTelegramAuth(user)');
             script.setAttribute('data-request-access', 'write');
             document.body.appendChild(script);
-            
+
             window.onTelegramAuth = async (user) => {
                 try {
-                    const response = await fetch('http://localhost:8000/auth/telegram', {
+                    const response = await fetch('https://10.7.0.9:443/auth/telegram', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify(user),
                     });
-                    
+
                     const data = await response.json();
-                    
+
                     if (data.success) {
                         userData = user;
                         showUserInfo();
@@ -89,7 +89,7 @@
                 }
             };
         }
-        
+
         // Показать информацию о пользователе
         function showUserInfo() {
             document.getElementById('auth-container').style.display = 'none';
@@ -97,7 +97,7 @@
             document.getElementById('user-name').textContent = userData.first_name;
             document.getElementById('user-id').textContent = userData.id;
         }
-        
+
         // Подключение кошелька
         async function connectWallet() {
             if (window.ethereum) {
@@ -106,11 +106,11 @@
                     await window.ethereum.request({ method: 'eth_requestAccounts' });
                     const accounts = await web3.eth.getAccounts();
                     walletAddress = accounts[0];
-                    
+
                     document.getElementById('connect-wallet').style.display = 'none';
                     document.getElementById('wallet-info').style.display = 'block';
                     document.getElementById('wallet-address').textContent = walletAddress;
-                    
+
                     // Здесь можно добавить вызовы к вашему бэкенду с информацией о пользователе и кошельке
                 } catch (error) {
                     console.error('Wallet connection error:', error);
@@ -120,7 +120,7 @@
                 alert('Please install MetaMask or another Web3 provider');
             }
         }
-        
+
         // Отключение кошелька
         function disconnectWallet() {
             web3 = null;
@@ -128,11 +128,11 @@
             document.getElementById('connect-wallet').style.display = 'block';
             document.getElementById('wallet-info').style.display = 'none';
         }
-        
+
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', () => {
             initTelegramAuth();
-            
+
             document.getElementById('connect-wallet').addEventListener('click', connectWallet);
             document.getElementById('disconnect-wallet').addEventListener('click', disconnectWallet);
         });
