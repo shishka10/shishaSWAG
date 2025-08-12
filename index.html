@@ -1,47 +1,141 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Telegram Login Widget Example</title>
-    <script async src="https://telegram.org/js/telegram-widget.js?15"
-            data-telegram-login="jojossaslol_bot"
-            data-size="large"
-            data-userpic="false"
-            data-auth-url=""
-            data-request-access="write"
-            data-userpic="false"
-            data-callback="onTelegramAuth">
-    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web3 + Telegram Auth</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #0088cc;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #user-info, #wallet-info {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
 </head>
 <body>
-<h2>Вход через Telegram</h2>
-<div id="result"></div>
-<script>
-    console.log('12123177777777777777')
-    async function onTelegramAuth(user) {
-        // user содержит данные из Telegram Login Widget
-        const formData = new FormData();
-        formData.append('id', user.id);
-        formData.append('first_name', user.first_name || "");
-        formData.append('username', user.username || "");
-        formData.append('auth_date', user.auth_date);
-        formData.append('hash', user.hash);
-        let joj = document.getElementById('result');
-        joj.insertAdjacentHTML('afterbegin',`<p>${user.id}</p>`);
-        try {
+    <h1>Web3 App with Telegram Auth</h1>
+    
+    <div id="auth-container">
+        <div id="telegram-auth"></div>
+    </div>
+    
+    <div id="user-info" style="display: none;">
+        <h2>Welcome, <span id="user-name"></span>!</h2>
+        <p>Telegram ID: <span id="user-id"></span></p>
+        
+        <div id="wallet-info" style="display: none;">
+            <h3>Wallet Connected</h3>
+            <p>Address: <span id="wallet-address"></span></p>
+            <button id="disconnect-wallet">Disconnect Wallet</button>
+        </div>
+        
+        <button id="connect-wallet">Connect Wallet</button>
+    </div>
 
-            const response = await fetch('http://127.0.0.1:8000/auth/token', {
-                method: 'POST',
-                body: formData
-            });
-            if (!response.ok) throw new Error('Ошибка авторизации');
-            const data = await response.json();
-            document.getElementById('result').innerText = 'JWT токен: ' + data.access_token;
-            // Сохраняйте токен и используйте для аутентифицированных запросов
-        } catch (err) {
-            document.getElementById('result').innerText = 'Ошибка: ' + err.message;
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
+    <script>
+        // Глобальные переменные
+        let userData = null;
+        let web3 = null;
+        let walletAddress = '';
+        
+        // Инициализация Telegram Widget
+        function initTelegramAuth() {
+            const script = document.createElement('script');
+            script.src = "https://telegram.org/js/telegram-widget.js?22";
+            script.async = true;
+            script.setAttribute('data-telegram-login', 'YOUR_BOT_USERNAME');
+            script.setAttribute('data-size', 'large');
+            script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+            script.setAttribute('data-request-access', 'write');
+            document.body.appendChild(script);
+            
+            window.onTelegramAuth = async (user) => {
+                try {
+                    const response = await fetch('http://localhost:8000/auth/telegram', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(user),
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        userData = user;
+                        showUserInfo();
+                    } else {
+                        alert('Authentication failed: ' + (data.error || 'Unknown error'));
+                    }
+                } catch (error) {
+                    console.error('Auth error:', error);
+                    alert('Authentication error');
+                }
+            };
         }
-    }
-</script>
+        
+        // Показать информацию о пользователе
+        function showUserInfo() {
+            document.getElementById('auth-container').style.display = 'none';
+            document.getElementById('user-info').style.display = 'block';
+            document.getElementById('user-name').textContent = userData.first_name;
+            document.getElementById('user-id').textContent = userData.id;
+        }
+        
+        // Подключение кошелька
+        async function connectWallet() {
+            if (window.ethereum) {
+                try {
+                    web3 = new Web3(window.ethereum);
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    const accounts = await web3.eth.getAccounts();
+                    walletAddress = accounts[0];
+                    
+                    document.getElementById('connect-wallet').style.display = 'none';
+                    document.getElementById('wallet-info').style.display = 'block';
+                    document.getElementById('wallet-address').textContent = walletAddress;
+                    
+                    // Здесь можно добавить вызовы к вашему бэкенду с информацией о пользователе и кошельке
+                } catch (error) {
+                    console.error('Wallet connection error:', error);
+                    alert('Wallet connection failed');
+                }
+            } else {
+                alert('Please install MetaMask or another Web3 provider');
+            }
+        }
+        
+        // Отключение кошелька
+        function disconnectWallet() {
+            web3 = null;
+            walletAddress = '';
+            document.getElementById('connect-wallet').style.display = 'block';
+            document.getElementById('wallet-info').style.display = 'none';
+        }
+        
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', () => {
+            initTelegramAuth();
+            
+            document.getElementById('connect-wallet').addEventListener('click', connectWallet);
+            document.getElementById('disconnect-wallet').addEventListener('click', disconnectWallet);
+        });
+    </script>
 </body>
 </html>
