@@ -16,7 +16,6 @@
 <body>
 <h2>Вход через Telegram</h2>
 <div id="result"></div>
-
 <script>
     async function onTelegramAuth(user) {
         // user содержит данные из Telegram Login Widget
@@ -26,9 +25,11 @@
         formData.append('username', user.username || "");
         formData.append('auth_date', user.auth_date);
         formData.append('hash', user.hash);
-
+        let joj = document.getElementById('result');
+        joj.insertAdjacentHTML('afterbegin',`<p>${user.id}</p>`);
         try {
-            const response = await fetch('https://10.7.0.9:8000/auth/token', {
+
+            const response = await fetch('http://localhost:8000/auth/token', {
                 method: 'POST',
                 body: formData
             });
